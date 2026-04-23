@@ -1,104 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Motivation Roulette</title>
+    <title>Motivation Roulette - Customizable</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding-top: 50px; }
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; display: flex; flex-direction: row; height: 100vh; margin: 0; }
+        #sidebar { width: 300px; background: #252525; padding: 20px; display: flex; flex-direction: column; border-right: 2px solid #444; }
+        #main { flex-grow: 1; padding-top: 50px; position: relative; }
         #wheel-container { position: relative; width: 500px; height: 500px; margin: 0 auto; }
         canvas { border-radius: 50%; border: 10px solid #333; transition: transform 4s cubic-bezier(0.1, 0, 0.2, 1); }
         #pointer { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 0; height: 0; 
                    border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid gold; z-index: 10; }
-        button { margin-top: 30px; padding: 15px 30px; font-size: 20px; cursor: pointer; background: gold; border: none; border-radius: 5px; font-weight: bold; }
-        #result { margin-top: 20px; font-size: 24px; color: gold; font-weight: bold; min-height: 30px; }
+        textarea { height: 300px; background: #111; color: #27ae60; border: 1px solid #444; padding: 10px; font-family: monospace; }
+        .btn { margin-top: 10px; padding: 15px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        #spin-btn { background: gold; color: black; font-size: 24px; margin-top: 30px; }
+        #update-btn { background: #444; color: white; }
+        #result { margin-top: 20px; font-size: 24px; color: gold; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>Motivation Roulette</h1>
-    <div id="wheel-container">
-        <div id="pointer"></div>
-        <canvas id="wheel" width="500" height="500"></canvas>
+    <div id="sidebar">
+        <h3>Customize Tasks</h3>
+        <p style="font-size: 12px; color: #aaa;">Enter tasks (one per line).<br>Motivational tasks first for green colors.</p>
+        <textarea id="taskInput">Study for IT Certs
+Take a Class
+Complete Work Task
+System Admin Lab
+Prep Meal Plan
+Gym/Exercise
+---
+Read a Book
+Play Board Game
+Watch Star Wars
+Listen to Music
+Browse YouTube
+Take a Nap
+Check 3D Prints
+Research Motorcycles
+Look at Menus
+Doodle Designs
+Clean Space
+Watch a Movie</textarea>
+        <button class="btn" id="update-btn" onclick="updateWheel()">Update & Save</button>
     </div>
-    <button onclick="spin()">SPIN THE WHEEL</button>
-    <div id="result"></div>
+
+    <div id="main">
+        <h1>Motivation Roulette</h1>
+        <div id="wheel-container">
+            <div id="pointer"></div>
+            <canvas id="wheel" width="500" height="500"></canvas>
+        </div>
+        <button class="btn" id="spin-btn" onclick="spin()">SPIN THE WHEEL</button>
+        <div id="result"></div>
+    </div>
 
     <script>
         const canvas = document.getElementById('wheel');
         const ctx = canvas.getContext('2d');
-        
-        // Items defined with their original "motivational" status
-        const items = [
-            { text: "Study for IT Certs", type: "high" },
-            { text: "Take a Class", type: "high" },
-            { text: "Complete Work Task", type: "high" },
-            { text: "System Admin Lab", type: "high" },
-            { text: "Prep Meal Plan", type: "high" },
-            { text: "Gym/Exercise", type: "high" },
-            { text: "Read a Book", type: "low" },
-            { text: "Play Board Game", type: "low" },
-            { text: "Watch Star Wars", type: "low" },
-            { text: "Listen to Music", type: "low" },
-            { text: "Browse YouTube", type: "low" },
-            { text: "Take a Nap", type: "low" },
-            { text: "Check 3D Prints", type: "low" },
-            { text: "Research Motorcycles", type: "low" },
-            { text: "Look at Menus", type: "low" },
-            { text: "Doodle Designs", type: "low" },
-            { text: "Clean Space", type: "low" },
-            { text: "Watch a Movie", type: "low" }
-        ];
+        const taskInput = document.getElementById('taskInput');
+        let items = [];
 
-        // Fisher-Yates Scramble function
-        function scramble(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
+        // Load saved tasks from LocalStorage
+        function loadTasks() {
+            const saved = localStorage.getItem('motivationTasks');
+            if (saved) taskInput.value = saved;
+            updateWheel();
         }
-        scramble(items);
 
-        const numSectors = items.length;
-        const arc = 2 * Math.PI / numSectors;
+        function updateWheel() {
+            const raw = taskInput.value.split('\n').filter(t => t.trim() !== "" && t.trim() !== "---");
+            // Simple rule: top 6 are green (motivational)
+            items = raw.map((t, i) => ({ text: t, type: i < 6 ? "high" : "low" }));
+            localStorage.setItem('motivationTasks', taskInput.value); // Save to browser
+            drawWheel();
+        }
 
         function drawWheel() {
+            ctx.clearRect(0, 0, 500, 500);
+            const numSectors = items.length;
+            const arc = 2 * Math.PI / numSectors;
+
             items.forEach((item, i) => {
                 const angle = i * arc;
                 ctx.fillStyle = item.type === "high" ? "#27ae60" : "#c0392b";
-                ctx.beginPath();
-                ctx.moveTo(250, 250);
+                ctx.beginPath(); ctx.moveTo(250, 250);
                 ctx.arc(250, 250, 240, angle, angle + arc);
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.save();
-                ctx.translate(250, 250);
-                ctx.rotate(angle + arc / 2);
-                ctx.fillStyle = "white";
-                ctx.textAlign = "right";
-                ctx.font = "bold 12px Arial";
-                ctx.fillText(item.text, 230, 5);
-                ctx.restore();
+                ctx.fill(); ctx.stroke();
+                ctx.save(); ctx.translate(250, 250); ctx.rotate(angle + arc / 2);
+                ctx.fillStyle = "white"; ctx.textAlign = "right"; ctx.font = "bold 12px Arial";
+                ctx.fillText(item.text.substring(0, 22), 230, 5); ctx.restore();
             });
         }
 
         let currentRotation = 0;
-
         function spin() {
             document.getElementById('result').innerText = "Spinning...";
             const extraSpin = Math.floor(Math.random() * 360) + 1800; 
             currentRotation += extraSpin;
             canvas.style.transform = `rotate(${currentRotation}deg)`;
-            
             setTimeout(() => {
                 const netRotation = (currentRotation % 360);
-                const sectorAngle = 360 / numSectors;
+                const sectorAngle = 360 / items.length;
                 const resultIndex = Math.floor(((360 - netRotation + 270) % 360) / sectorAngle);
-                
                 document.getElementById('result').innerText = "Today's Fate: " + items[resultIndex].text;
             }, 4000);
         }
 
-        drawWheel();
+        loadTasks();
     </script>
 </body>
 </html>
