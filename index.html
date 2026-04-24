@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Motivation Roulette - Customizable</title>
+    <title>Motivation Roulette - Alternating</title>
     <style>
         body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; display: flex; flex-direction: row; height: 100vh; margin: 0; }
         #sidebar { width: 300px; background: #252525; padding: 20px; display: flex; flex-direction: column; border-right: 2px solid #444; }
@@ -21,7 +21,7 @@
 
     <div id="sidebar">
         <h3>Customize Tasks</h3>
-        <p style="font-size: 12px; color: #aaa;">Enter tasks (one per line).<br>Motivational tasks first for green colors.</p>
+        <p style="font-size: 11px; color: #aaa;">List motivational tasks first, then low-motivation tasks. The wheel will interleave them automatically.</p>
         <textarea id="taskInput">Study for IT Certs
 Take a Class
 Complete Work Task
@@ -41,7 +41,7 @@ Look at Menus
 Doodle Designs
 Clean Space
 Watch a Movie</textarea>
-        <button class="btn" id="update-btn" onclick="updateWheel()">Update & Save</button>
+        <button class="btn" id="update-btn" onclick="updateWheel()">Update & Interleave</button>
     </div>
 
     <div id="main">
@@ -60,7 +60,6 @@ Watch a Movie</textarea>
         const taskInput = document.getElementById('taskInput');
         let items = [];
 
-        // Load saved tasks from LocalStorage
         function loadTasks() {
             const saved = localStorage.getItem('motivationTasks');
             if (saved) taskInput.value = saved;
@@ -69,9 +68,30 @@ Watch a Movie</textarea>
 
         function updateWheel() {
             const raw = taskInput.value.split('\n').filter(t => t.trim() !== "" && t.trim() !== "---");
-            // Simple rule: top 6 are green (motivational)
-            items = raw.map((t, i) => ({ text: t, type: i < 6 ? "high" : "low" }));
-            localStorage.setItem('motivationTasks', taskInput.value); // Save to browser
+            
+            // Separate into two piles based on the 1:2 ratio logic
+            let high = raw.slice(0, 6).map(t => ({ text: t, type: "high" }));
+            let low = raw.slice(6).map(t => ({ text: t, type: "low" }));
+
+            // Interleaving Logic: Spread high-motivation tasks as evenly as possible
+            items = [];
+            const total = high.length + low.length;
+            const ratio = low.length / high.length;
+
+            let lowIdx = 0;
+            for (let i = 0; i < high.length; i++) {
+                items.push(high[i]);
+                // Add a proportional number of low tasks after each high task
+                for (let j = 0; j < Math.round(ratio) && lowIdx < low.length; j++) {
+                    items.push(low[lowIdx++]);
+                }
+            }
+            // Add any remaining low tasks
+            while (lowIdx < low.length) {
+                items.push(low[lowIdx++]);
+            }
+
+            localStorage.setItem('motivationTasks', taskInput.value);
             drawWheel();
         }
 
@@ -87,15 +107,15 @@ Watch a Movie</textarea>
                 ctx.arc(250, 250, 240, angle, angle + arc);
                 ctx.fill(); ctx.stroke();
                 ctx.save(); ctx.translate(250, 250); ctx.rotate(angle + arc / 2);
-                ctx.fillStyle = "white"; ctx.textAlign = "right"; ctx.font = "bold 12px Arial";
-                ctx.fillText(item.text.substring(0, 22), 230, 5); ctx.restore();
+                ctx.fillStyle = "white"; ctx.textAlign = "right"; ctx.font = "bold 11px Arial";
+                ctx.fillText(item.text.substring(0, 25), 235, 5); ctx.restore();
             });
         }
 
         let currentRotation = 0;
         function spin() {
             document.getElementById('result').innerText = "Spinning...";
-            const extraSpin = Math.floor(Math.random() * 360) + 1800; 
+            const extraSpin = Math.floor(Math.random() * 360) + 2160; 
             currentRotation += extraSpin;
             canvas.style.transform = `rotate(${currentRotation}deg)`;
             setTimeout(() => {
